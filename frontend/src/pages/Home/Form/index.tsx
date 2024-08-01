@@ -6,7 +6,10 @@ import TextFieldControl from "@components/TextFieldControl";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useTodoCreate } from "@libs/queries/todo";
+
+import { useTodoCreate, useTodoUpdate } from "@libs/queries/todo";
+
+import { TodoResponseDTO } from "@libs/queries/todo/dtos/TodoResponseDTO";
 
 const schema = z.object({
   title: z.string().min(1, { message: "Informe o Título" }),
@@ -16,15 +19,17 @@ const schema = z.object({
 interface FormProps {
   isOpen: boolean;
   onClose: () => void;
+  data: TodoResponseDTO | null;
 }
 
-export default function Form({ isOpen, onClose }: FormProps) {
+export default function Form({ isOpen, onClose, data: _data }: FormProps) {
   const { mutateAsyncCreate, isLoadingCreate } = useTodoCreate();
-  const isLoading = isLoadingCreate;
+  const { mutateAsyncUpdate, isLoadingUpdate } = useTodoUpdate();
+  const isLoading = isLoadingCreate || isLoadingUpdate;
 
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: {
+    defaultValues: _data || {
       title: "",
       description: "",
     },
@@ -37,7 +42,14 @@ export default function Form({ isOpen, onClose }: FormProps) {
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={form.handleSubmit(async (data) => {
-        await mutateAsyncCreate(data);
+        if (_data) {
+          await mutateAsyncUpdate({
+            data,
+            id: _data.id,
+          });
+        } else {
+          await mutateAsyncCreate(data);
+        }
         onClose();
       })}
       isLoading={isLoading}

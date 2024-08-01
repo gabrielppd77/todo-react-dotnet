@@ -1,15 +1,50 @@
 import React from "react";
 
-import { Button, Stack } from "@mui/material";
+import { Box, Button, IconButton, Stack } from "@mui/material";
+import {
+  CheckCircle,
+  CheckCircleOutline,
+  Delete,
+  Edit,
+} from "@mui/icons-material";
 
 import DataTable from "@components/DataTable";
 import PageHeader from "@components/PageHeader";
 
-import { useTodoGetAll } from "@libs/queries/todo";
 import Form from "./Form";
 
+import {
+  useTodoGetAll,
+  useTodoRemove,
+  useTodoToggleTodo,
+} from "@libs/queries/todo";
+import { confirmDelete } from "@libs/alert";
+
+import { TodoResponseDTO } from "@libs/queries/todo/dtos/TodoResponseDTO";
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
 export default function Home() {
-  const [isOpenForm, setOpenForm] = React.useState(false);
+  const [dataForm, setDataForm] = React.useState<{
+    data: TodoResponseDTO | null;
+    isOpen: boolean;
+  }>({
+    data: null,
+    isOpen: false,
+  });
+
+  const { mutateAsyncToggleTodo, isLoadingToggleTodo } = useTodoToggleTodo();
+  const { mutateAsyncRemove } = useTodoRemove();
 
   const { data: _data, isLoading, isFetching } = useTodoGetAll();
   const data = _data || [];
@@ -19,7 +54,15 @@ export default function Home() {
       <PageHeader
         title="Tarefas"
         renderRight={
-          <Button variant="contained" onClick={() => setOpenForm(true)}>
+          <Button
+            variant="contained"
+            onClick={() =>
+              setDataForm({
+                data: null,
+                isOpen: true,
+              })
+            }
+          >
             Adicionar
           </Button>
         }
@@ -28,6 +71,29 @@ export default function Home() {
       <DataTable
         data={data}
         columns={[
+          {
+            name: "id",
+            label: "Status",
+            options: {
+              customBodyRender: (value) => {
+                const rowCurrent = data.find((d) => d.id === value);
+                if (rowCurrent) {
+                  return (
+                    <IconButton
+                      color={rowCurrent.isConcluded ? "success" : "default"}
+                      onClick={async () => await mutateAsyncToggleTodo(value)}
+                    >
+                      {rowCurrent.isConcluded ? (
+                        <CheckCircle />
+                      ) : (
+                        <CheckCircleOutline />
+                      )}
+                    </IconButton>
+                  );
+                }
+              },
+            },
+          },
           {
             name: "title",
             label: "Título",
@@ -39,22 +105,60 @@ export default function Home() {
           {
             name: "updatedAt",
             label: "Última Atualização",
-          },
-          {
-            name: "id",
-            label: "Status",
+            options: {
+              customBodyRender: formatDate,
+            },
           },
           {
             name: "id",
             label: "Ações",
+            options: {
+              customBodyRender: (value) => {
+                return (
+                  <Box>
+                    <IconButton
+                      onClick={() => {
+                        const rowCurrent = data.find((d) => d.id === value);
+                        if (rowCurrent) {
+                          setDataForm({
+                            data: rowCurrent,
+                            isOpen: true,
+                          });
+                        }
+                      }}
+                    >
+                      <Edit />
+                    </IconButton>
+                    <IconButton
+                      onClick={() =>
+                        confirmDelete(
+                          async () => await mutateAsyncRemove(value)
+                        )
+                      }
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Box>
+                );
+              },
+            },
           },
         ]}
         isLoading={isLoading}
-        isFetching={isFetching}
+        isFetching={isFetching || isLoadingToggleTodo}
       />
 
-      {isOpenForm && (
-        <Form isOpen={isOpenForm} onClose={() => setOpenForm(false)} />
+      {dataForm.isOpen && (
+        <Form
+          isOpen={dataForm.isOpen}
+          data={dataForm.data}
+          onClose={() =>
+            setDataForm({
+              data: null,
+              isOpen: false,
+            })
+          }
+        />
       )}
     </Stack>
   );
