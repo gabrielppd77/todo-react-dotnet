@@ -9,6 +9,8 @@ import MainLayout from "@layouts/MainLayout";
 import SignUp from "@pages/SignUp";
 import SignIn from "@pages/SignIn";
 
+import Home from "@pages/Home";
+
 const routes = createBrowserRouter([
   {
     path: "/",
@@ -30,7 +32,7 @@ const routes = createBrowserRouter([
     children: [
       {
         path: "/home",
-        element: <>home</>,
+        element: <Home />,
       },
     ],
   },

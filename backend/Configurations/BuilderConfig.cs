@@ -21,6 +21,7 @@ namespace backend.Configurations
 			builder.Services.AddControllers();
 			builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 			builder.Services.AddProblemDetails();
+			builder.Services.AddHttpContextAccessor();
 			builder.Services.AddContexts();
 			builder.Services.AddServices();
 			builder.Services.AddRepositories();
